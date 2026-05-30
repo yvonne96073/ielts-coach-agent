@@ -1,4 +1,4 @@
-﻿# IELTS Coach Agent
+# IELTS Coach Agent
 
 An adaptive IELTS coaching agent that observes learner answers, infers error patterns, generates targeted drills, and helps learners move from roughly Band 6 toward Band 7.5.
 
@@ -92,21 +92,20 @@ Next drill: 5 intention-vs-result TFNG questions.
 
 ## Notion Vocabulary Workflow
 
-When the learner misses a vocabulary item, the agent prepares a record and can sync it to the existing Notion `IELTS` vocabulary database after environment variables are configured.
+When the learner misses a vocabulary item, the agent prepares a record and can sync it to a Notion vocabulary database after environment variables are configured.
 
-The detected existing Notion database schema is:
+Each user should create their own Notion database before enabling sync. The recommended schema is:
 
 ```text
-Name   -> word or phrase
-銝剜?   -> Chinese meaning
-Example -> IELTS-style example sentence
-Collocation -> real collocations only, left blank when unknown
-YouGlish -> UK pronunciation link
-Sound Note -> stress, weak sound, or listening note
-Next Review -> spaced review date
-Error Type -> meaning, collocation, paraphrase, spelling, listening recognition, active use, pronunciation
-蝔桅?   -> existing multi-select tags such as ?潮銝? or ?潮
-?賣?   -> error type or listening mistake note
+Word         Title
+中文         Text
+Example      Text
+Collocation  Text, real collocations only; leave blank when unknown
+YouGlish     URL
+Sound Note   Text
+Next Review  Date
+Error Type   Multi-select: meaning, collocation, paraphrase, spelling, listening recognition, active use, pronunciation
+聽成         Text, optional listening mistake note
 ```
 
 Create `.env.local` from `.env.example`:
@@ -116,7 +115,7 @@ NOTION_TOKEN=your_notion_integration_token
 NOTION_VOCAB_DATABASE_ID=your_notion_database_id
 ```
 
-Then share the `IELTS` database with the Notion integration in Notion.
+Then share the vocabulary database with the Notion integration in Notion.
 
 When synced, each record can include:
 
