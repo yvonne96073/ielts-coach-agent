@@ -100,6 +100,17 @@ export async function POST(request: Request) {
   const result = await response.json();
 
   if (!response.ok) {
+    if (result.code === "object_not_found") {
+      return NextResponse.json(
+        {
+          error:
+            "Notion database is not shared with the IELTS Coach Agent integration. Open the IELTS database in Notion, choose Share or Connections, and connect the integration.",
+          details: result,
+        },
+        { status: response.status },
+      );
+    }
+
     return NextResponse.json(
       {
         error: "Notion rejected the vocabulary record.",
