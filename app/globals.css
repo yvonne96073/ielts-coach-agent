@@ -298,6 +298,32 @@ h3 {
   gap: 12px;
 }
 
+.diagnostic-list {
+  display: grid;
+  gap: 12px;
+}
+
+.memory-strip {
+  display: grid;
+  gap: 10px;
+}
+
+.pattern-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pattern-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
 .criterion {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -306,11 +332,67 @@ h3 {
   gap: 10px;
 }
 
+.diagnostic,
+.notion-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  background: #fbfcfb;
+}
+
 .criterion-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 14px;
+}
+
+.diagnostic-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.diagnostic-top span {
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.diagnostic-grid {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.diagnostic-grid div {
+  display: grid;
+  gap: 3px;
+}
+
+.diagnostic-grid dt {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.diagnostic-grid dd {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.diagnostic-grid a {
+  color: var(--accent-strong);
+  font-weight: 700;
 }
 
 .mini-score {

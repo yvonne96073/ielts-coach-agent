@@ -7,12 +7,35 @@ export type CriterionFeedback = {
   suggestions: string[];
 };
 
+export type DiagnosticFinding = {
+  pattern: string;
+  likelyMethod: string;
+  strategyIssue: string;
+  betterMethod: string;
+  nextDrill: string;
+};
+
+export type NotionVocabularyRecord = {
+  wordOrPhrase: string;
+  chineseMeaning: string;
+  englishMeaning: string;
+  ieltsExample: string;
+  collocations: string[];
+  pronunciationLink: string;
+  errorType: string;
+  nextReviewDate: string;
+  errorCount: number;
+};
+
 export type CoachFeedback = {
   mode: PracticeMode;
   estimatedBand: number;
   overview: string;
   strengths: string[];
   priorities: string[];
+  diagnostics: DiagnosticFinding[];
+  nextDrills: string[];
+  notionVocabularyRecord?: NotionVocabularyRecord;
   criteria: CriterionFeedback[];
 };
 
@@ -103,19 +126,29 @@ export function scoreIeltsResponse(input: ScoreInput): CoachFeedback {
   const estimatedBand = roundToHalf(
     criteria.reduce((total, item) => total + item.score, 0) / criteria.length,
   );
+  const diagnostics = diagnosePatterns(input, {
+    wordCount: words.length,
+    sentenceCount: sentences.length,
+    averageSentenceLength,
+    connectorCount,
+  });
 
   return {
     mode: input.mode,
     estimatedBand,
     overview: buildOverview(estimatedBand, input.mode),
     strengths: buildStrengths(criteria),
-    priorities: buildPriorities(criteria),
+    priorities: buildPriorities(criteria, diagnostics),
+    diagnostics,
+    nextDrills: diagnostics.map((diagnostic) => diagnostic.nextDrill),
+    notionVocabularyRecord:
+      input.mode === "vocabulary" ? buildNotionVocabularyRecord(input) : undefined,
     criteria,
   };
 }
 
-function tokenize(text: string) {
-  return text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) ?? [];
+function tokenize(text: string): string[] {
+  return Array.from(text.matchAll(/[A-Za-z]+(?:'[A-Za-z]+)?/g), (match) => match[0]);
 }
 
 function splitSentences(text: string) {
@@ -355,10 +388,277 @@ function buildStrengths(criteria: CriterionFeedback[]) {
     .map((criterion) => `${criterion.name}: ${criterion.summary}`);
 }
 
-function buildPriorities(criteria: CriterionFeedback[]) {
-  return criteria
+function buildPriorities(criteria: CriterionFeedback[], diagnostics: DiagnosticFinding[]) {
+  const criterionPriorities = criteria
     .slice()
     .sort((a, b) => a.score - b.score)
     .slice(0, 2)
     .flatMap((criterion) => criterion.suggestions.slice(0, 1));
+
+  return [
+    ...diagnostics.slice(0, 2).map((diagnostic) => diagnostic.betterMethod),
+    ...criterionPriorities,
+  ].slice(0, 4);
+}
+
+function diagnosePatterns(
+  input: ScoreInput,
+  stats: {
+    wordCount: number;
+    sentenceCount: number;
+    averageSentenceLength: number;
+    connectorCount: number;
+  },
+): DiagnosticFinding[] {
+  const text = `${input.task} ${input.answer}`.toLowerCase();
+  const findings: DiagnosticFinding[] = [];
+
+  if (input.mode === "reading") {
+    if (/(tfng|true|false|not given|should|probably|intention|designed|attempt|result)/i.test(text)) {
+      findings.push({
+        pattern: "Reading: over-inference",
+        likelyMethod: "You may be treating intention, common sense, or a likely result as textual proof.",
+        strategyIssue: "The answer is being decided from what sounds reasonable, not from what the passage directly proves.",
+        betterMethod: "Separate evidence from inference: underline the exact words that prove the answer before choosing True, False, or Not Given.",
+        nextDrill: "5-question intention-vs-result TFNG drill",
+      });
+    }
+
+    if (/(heading|main idea|paragraph|function|purpose)/i.test(text)) {
+      findings.push({
+        pattern: "Reading: paragraph function confusion",
+        likelyMethod: "You may be matching headings by repeated keywords instead of the paragraph's job.",
+        strategyIssue: "Keyword overlap can hide whether the paragraph is defining, contrasting, giving evidence, or showing a result.",
+        betterMethod: "Label each paragraph function in 3 to 5 words before looking at heading options.",
+        nextDrill: "paragraph function labelling set",
+      });
+    }
+
+    if (/(locat|line|where|cannot find|evidence)/i.test(text)) {
+      findings.push({
+        pattern: "Reading: evidence location failure",
+        likelyMethod: "You may be scanning for a single word instead of a paraphrased idea.",
+        strategyIssue: "The location step breaks when the passage uses synonyms or a different grammatical form.",
+        betterMethod: "Predict two paraphrases for the question keywords, then scan for those meanings.",
+        nextDrill: "keyword-to-paraphrase locating drill",
+      });
+    }
+  }
+
+  if (input.mode === "listening") {
+    if (/(map|left|right|north|south|turn|entrance|opposite|next to)/i.test(text)) {
+      findings.push({
+        pattern: "Listening: map re-anchor loss",
+        likelyMethod: "You may keep following the old location after the speaker changes direction.",
+        strategyIssue: "Once the anchor point is lost, the next two or three answers can collapse together.",
+        betterMethod: "Mark the current anchor after every direction phrase and reset from that point.",
+        nextDrill: "map re-anchor drill with pause points",
+      });
+    }
+
+    if (/(distractor|but|however|changed|instead|actually|not|rather)/i.test(text)) {
+      findings.push({
+        pattern: "Listening: distractor trap",
+        likelyMethod: "You may write the first plausible answer before the speaker corrects it.",
+        strategyIssue: "IELTS often gives an attractive wrong answer before the real answer.",
+        betterMethod: "Wait for contrast markers like but, instead, actually, and final confirmation.",
+        nextDrill: "distractor detection transcript drill",
+      });
+    }
+
+    if (/(missed|lost|after that|next question|couldn't follow|could not follow)/i.test(text)) {
+      findings.push({
+        pattern: "Listening: chain error after one miss",
+        likelyMethod: "You may keep thinking about the missed answer while the recording moves on.",
+        strategyIssue: "One blank answer is turning into several wrong answers.",
+        betterMethod: "Skip immediately after 2 seconds and re-anchor on the next question keyword.",
+        nextDrill: "one-miss recovery drill",
+      });
+    }
+  }
+
+  if (input.mode === "speaking") {
+    if (stats.averageSentenceLength < 12 || stats.sentenceCount < 5) {
+      findings.push({
+        pattern: "Speaking: simple sentence repetition",
+        likelyMethod: "You may be answering in short safe sentences to avoid grammar mistakes.",
+        strategyIssue: "Accuracy is protected, but fluency and grammatical range stay capped.",
+        betterMethod: "Use answer plus reason plus example, then add one contrast sentence.",
+        nextDrill: "Band 7 extension ladder drill",
+      });
+    }
+
+    if (/(gonna|wanna|stuff|things|a lot of|kids|you know|like,)/i.test(text)) {
+      findings.push({
+        pattern: "Speaking: overly casual word choice",
+        likelyMethod: "You may be relying on conversational filler when searching for ideas.",
+        strategyIssue: "The answer can sound natural but too imprecise for Band 7 lexical resource.",
+        betterMethod: "Replace filler with one specific noun phrase and one topic collocation.",
+        nextDrill: "casual-to-precise speaking rewrite",
+      });
+    }
+
+    if (/(yesterday|last year|when i was|in the past|now|currently|will|would)/i.test(text)) {
+      findings.push({
+        pattern: "Speaking: tense drift",
+        likelyMethod: "You may switch time frames while extending the answer.",
+        strategyIssue: "The examiner may hear unclear control between past experience, present habit, and future plan.",
+        betterMethod: "Label the answer timeline first: past, present, future, then keep each chunk consistent.",
+        nextDrill: "past-present-future cue card drill",
+      });
+    }
+  }
+
+  if (input.mode === "writing") {
+    if (stats.wordCount < 250) {
+      findings.push({
+        pattern: "Writing: Task 2 under-development",
+        likelyMethod: "You may stop after stating a reason without extending it into explanation and example.",
+        strategyIssue: "The essay can be clear but too thin to fully satisfy task response.",
+        betterMethod: "Build each body paragraph as point, why, example, consequence.",
+        nextDrill: "word-count expansion paragraph drill",
+      });
+    }
+
+    if (/(i think|you know|a lot of|kids|stuff|things|really good|bad)/i.test(text)) {
+      findings.push({
+        pattern: "Writing: spoken-style Task 2",
+        likelyMethod: "You may be drafting the essay the way you would explain it in conversation.",
+        strategyIssue: "The ideas are understandable, but the register sounds too informal for academic writing.",
+        betterMethod: "Convert personal or casual phrasing into neutral academic claims.",
+        nextDrill: "spoken-to-academic Task 2 rewrite",
+      });
+    }
+
+    if (stats.averageSentenceLength < 14 || stats.connectorCount < 3) {
+      findings.push({
+        pattern: "Writing: limited sentence variety",
+        likelyMethod: "You may be using repeated simple sentence frames to stay safe.",
+        strategyIssue: "The essay may lack the complex structures needed for a higher grammar score.",
+        betterMethod: "Add one concession sentence and one cause-result sentence in each essay.",
+        nextDrill: "sentence variety control drill",
+      });
+    }
+  }
+
+  if (input.mode === "vocabulary") {
+    if (/(chinese|中文|meaning|意思|translate|translation)/i.test(text)) {
+      findings.push({
+        pattern: "Vocabulary: Chinese-meaning-only memory",
+        likelyMethod: "You may be memorising the Chinese translation without usage context.",
+        strategyIssue: "Recognition improves, but active use and listening recognition stay weak.",
+        betterMethod: "Save English meaning, collocation, pronunciation cue, and one IELTS sentence together.",
+        nextDrill: "meaning-to-collocation recall quiz",
+      });
+    }
+
+    if (/(pronunciation|pronounce|sound|listen|heard|hearing|youglish)/i.test(text)) {
+      findings.push({
+        pattern: "Vocabulary: pronunciation recognition gap",
+        likelyMethod: "You may know the written word but not its connected-speech sound.",
+        strategyIssue: "The word is stored visually, so it disappears in Listening.",
+        betterMethod: "Review the word through YouGlish, then repeat the sentence aloud twice.",
+        nextDrill: "YouGlish shadowing mini-drill",
+      });
+    }
+
+    if (/(forget|forgot|review|again|remember|spaced|同義|synonym|paraphrase)/i.test(text)) {
+      findings.push({
+        pattern: "Vocabulary: weak spaced recall or paraphrase",
+        likelyMethod: "You may review the word once but not retrieve it across time or paraphrases.",
+        strategyIssue: "The word feels familiar but cannot be recalled under IELTS pressure.",
+        betterMethod: "Schedule 1-day, 3-day, 7-day reviews and practise one synonym swap.",
+        nextDrill: "spaced review plus synonym swap quiz",
+      });
+    }
+  }
+
+  if (findings.length === 0) {
+    findings.push(defaultDiagnostic(input.mode));
+  }
+
+  return findings.slice(0, 3);
+}
+
+function defaultDiagnostic(mode: PracticeMode): DiagnosticFinding {
+  const defaults: Record<PracticeMode, DiagnosticFinding> = {
+    reading: {
+      pattern: "Reading: evidence discipline check",
+      likelyMethod: "Your explanation does not reveal a clear recurring pattern yet.",
+      strategyIssue: "The next step is to make your evidence trail visible.",
+      betterMethod: "Write the exact evidence, then write why it proves or does not prove the option.",
+      nextDrill: "evidence-only answer explanation drill",
+    },
+    listening: {
+      pattern: "Listening: prediction routine check",
+      likelyMethod: "Your review does not reveal a clear recurring pattern yet.",
+      strategyIssue: "Without a prediction, it is harder to notice distractors and answer type.",
+      betterMethod: "Predict noun, number, place, date, or adjective before listening.",
+      nextDrill: "answer-type prediction drill",
+    },
+    speaking: {
+      pattern: "Speaking: answer development check",
+      likelyMethod: "Your answer does not reveal a strong recurring pattern yet.",
+      strategyIssue: "The answer may need more visible structure for Band 7 control.",
+      betterMethod: "Use direct answer, reason, example, and reflection.",
+      nextDrill: "4-step cue card expansion drill",
+    },
+    writing: {
+      pattern: "Writing: academic control check",
+      likelyMethod: "Your draft does not reveal a strong recurring pattern yet.",
+      strategyIssue: "The next step is to separate idea quality from language control.",
+      betterMethod: "Revise once for idea development and once for grammar range.",
+      nextDrill: "two-pass Task 2 revision drill",
+    },
+    vocabulary: {
+      pattern: "Vocabulary: record completeness check",
+      likelyMethod: "Your note does not reveal a strong recurring pattern yet.",
+      strategyIssue: "A word record without context is hard to reuse.",
+      betterMethod: "Store meaning, example, collocation, pronunciation, error type, and review date.",
+      nextDrill: "complete vocabulary card drill",
+    },
+  };
+
+  return defaults[mode];
+}
+
+function buildNotionVocabularyRecord(input: ScoreInput): NotionVocabularyRecord {
+  const candidate = extractVocabularyCandidate(input);
+  const encoded = encodeURIComponent(candidate);
+  const nextReviewDate = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  return {
+    wordOrPhrase: candidate,
+    chineseMeaning: "Add Chinese meaning during review",
+    englishMeaning: "Add a learner-friendly English definition",
+    ieltsExample: `I will practise using "${candidate}" in one IELTS-style sentence.`,
+    collocations: [`${candidate} + context`, `common ${candidate}`],
+    pronunciationLink: `https://youglish.com/pronounce/${encoded}/english/uk`,
+    errorType: "meaning, pronunciation, recall, or paraphrase",
+    nextReviewDate,
+    errorCount: 1,
+  };
+}
+
+function extractVocabularyCandidate(input: ScoreInput) {
+  const combined = `${input.task} ${input.answer}`;
+  const explicitMatch =
+    combined.match(/(?:word|phrase|review|for)\s+["']?([A-Za-z][A-Za-z-]{3,})["']?/i) ??
+    combined.match(/["']([A-Za-z][A-Za-z-]{3,})["']/);
+
+  if (explicitMatch?.[1]) {
+    return explicitMatch[1];
+  }
+
+  return (
+    tokenize(combined).find(
+      (word) =>
+        word.length >= 5 &&
+        !["vocabulary", "review", "meaning", "chinese", "english"].includes(
+          word.toLowerCase(),
+        ),
+    ) ?? "target phrase"
+  );
 }

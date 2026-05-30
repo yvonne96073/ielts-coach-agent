@@ -5,7 +5,7 @@ An adaptive IELTS coaching agent that observes learner answers, infers error pat
 The current repository now includes both:
 
 - product design, prompt architecture, sample data, and issue templates
-- a working Next.js MVP for Writing and Speaking feedback
+- a working Next.js diagnostic MVP for Reading, Listening, Speaking, Writing, and Vocabulary
 
 ## Why This Project Exists
 
@@ -22,12 +22,16 @@ This agent is built to act more like a coach:
 
 ## Current MVP
 
-The first working version is a Next.js app that gives quick feedback on IELTS Writing and Speaking responses across IELTS-style criteria:
+The first working version is a Next.js app that gives diagnostic feedback across Reading, Listening, Speaking, Writing, and Vocabulary. It does more than return a score: it identifies likely error patterns, infers the learner's method, points out the strategy issue, and assigns the next drill.
 
 - Task Response or Fluency and Relevance
 - Coherence and Cohesion
 - Lexical Resource
 - Grammar Range and Accuracy
+- Likely method and strategy issue
+- Next targeted drill
+- Local recurring-pattern memory for recent attempts
+- Vocabulary review fields for a future Notion sync
 
 The MVP uses a local rule-based scoring engine so the app works immediately. The API route is intentionally isolated so it can later be upgraded to call an LLM.
 

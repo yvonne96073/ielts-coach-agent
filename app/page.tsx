@@ -48,11 +48,27 @@ const sampleTasks: Record<PracticeMode, string> = {
     "Paste a word or phrase you missed, its sentence, your guessed meaning, and the correct meaning or context.",
 };
 
+type PracticeAttempt = {
+  mode: PracticeMode;
+  patterns: string[];
+  drills: string[];
+  createdAt: string;
+};
+
 export default function Home() {
   const [mode, setMode] = useState<PracticeMode>("writing");
   const [task, setTask] = useState(sampleTasks.writing);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<CoachFeedback | null>(null);
+  const [attemptHistory, setAttemptHistory] = useState<PracticeAttempt[]>(() => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+
+    const stored = window.localStorage.getItem("ielts-coach-attempts");
+
+    return stored ? (JSON.parse(stored) as PracticeAttempt[]) : [];
+  });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -88,6 +104,7 @@ export default function Home() {
       }
 
       setFeedback(data);
+      saveAttempt(data);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -99,6 +116,34 @@ export default function Home() {
     }
   }
 
+  function saveAttempt(nextFeedback: CoachFeedback) {
+    const nextAttempt: PracticeAttempt = {
+      mode: nextFeedback.mode,
+      patterns: nextFeedback.diagnostics.map((diagnostic) => diagnostic.pattern),
+      drills: nextFeedback.nextDrills,
+      createdAt: new Date().toISOString(),
+    };
+    const nextHistory = [nextAttempt, ...attemptHistory].slice(0, 20);
+
+    setAttemptHistory(nextHistory);
+    window.localStorage.setItem("ielts-coach-attempts", JSON.stringify(nextHistory));
+  }
+
+  const recurringPatterns = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const attempt of attemptHistory) {
+      for (const pattern of attempt.patterns) {
+        counts.set(pattern, (counts.get(pattern) ?? 0) + 1);
+      }
+    }
+
+    return Array.from(counts.entries())
+      .map(([pattern, count]) => ({ pattern, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4);
+  }, [attemptHistory]);
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -107,7 +152,7 @@ export default function Home() {
             <div className="brand-mark">IC</div>
             <div>
               <p>IELTS Coach Agent</p>
-              <p className="muted">Writing and speaking practice desk</p>
+              <p className="muted">Diagnostic IELTS 7.5 coach</p>
             </div>
           </div>
           <div className="topbar-meta">
@@ -196,6 +241,100 @@ export default function Home() {
                     ))}
                   </ul>
                 </section>
+
+                {recurringPatterns.length ? (
+                  <section className="memory-strip">
+                    <h3>Recurring patterns</h3>
+                    <div className="pattern-pills">
+                      {recurringPatterns.map((item) => (
+                        <span className="pattern-pill" key={item.pattern}>
+                          {item.pattern} x{item.count}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                <section className="diagnostic-list">
+                  <h3>Diagnostic snapshot</h3>
+                  {feedback.diagnostics.map((diagnostic) => (
+                    <article className="diagnostic" key={diagnostic.pattern}>
+                      <div className="diagnostic-top">
+                        <strong>{diagnostic.pattern}</strong>
+                        <span>Next drill</span>
+                      </div>
+                      <dl className="diagnostic-grid">
+                        <div>
+                          <dt>Likely method</dt>
+                          <dd>{diagnostic.likelyMethod}</dd>
+                        </div>
+                        <div>
+                          <dt>Strategy issue</dt>
+                          <dd>{diagnostic.strategyIssue}</dd>
+                        </div>
+                        <div>
+                          <dt>Better method</dt>
+                          <dd>{diagnostic.betterMethod}</dd>
+                        </div>
+                        <div>
+                          <dt>Drill</dt>
+                          <dd>{diagnostic.nextDrill}</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  ))}
+                </section>
+
+                {feedback.notionVocabularyRecord ? (
+                  <section className="notion-card">
+                    <div className="diagnostic-top">
+                      <h3>Notion vocabulary record</h3>
+                      <span>Draft</span>
+                    </div>
+                    <dl className="diagnostic-grid">
+                      <div>
+                        <dt>Word or phrase</dt>
+                        <dd>{feedback.notionVocabularyRecord.wordOrPhrase}</dd>
+                      </div>
+                      <div>
+                        <dt>Chinese meaning</dt>
+                        <dd>{feedback.notionVocabularyRecord.chineseMeaning}</dd>
+                      </div>
+                      <div>
+                        <dt>English meaning</dt>
+                        <dd>{feedback.notionVocabularyRecord.englishMeaning}</dd>
+                      </div>
+                      <div>
+                        <dt>IELTS example</dt>
+                        <dd>{feedback.notionVocabularyRecord.ieltsExample}</dd>
+                      </div>
+                      <div>
+                        <dt>Collocations</dt>
+                        <dd>{feedback.notionVocabularyRecord.collocations.join(", ")}</dd>
+                      </div>
+                      <div>
+                        <dt>YouGlish</dt>
+                        <dd>
+                          <a
+                            href={feedback.notionVocabularyRecord.pronunciationLink}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            UK pronunciation link
+                          </a>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Next review</dt>
+                        <dd>{feedback.notionVocabularyRecord.nextReviewDate}</dd>
+                      </div>
+                      <div>
+                        <dt>Error count</dt>
+                        <dd>{feedback.notionVocabularyRecord.errorCount}</dd>
+                      </div>
+                    </dl>
+                  </section>
+                ) : null}
 
                 <section className="criterion-list">
                   {feedback.criteria.map((criterion) => (
