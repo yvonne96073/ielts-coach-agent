@@ -18,7 +18,6 @@ export type DiagnosticFinding = {
 export type NotionVocabularyRecord = {
   wordOrPhrase: string;
   chineseMeaning: string;
-  englishMeaning: string;
   ieltsExample: string;
   collocations: string[];
   pronunciationLink: string;
@@ -30,7 +29,6 @@ export type NotionVocabularyRecord = {
     databaseName: string;
     wordProperty: string;
     meaningProperty: string;
-    englishProperty: string;
     sentenceProperty: string;
     collocationProperty: string;
     pronunciationProperty: string;
@@ -646,7 +644,6 @@ function buildNotionVocabularyRecord(input: ScoreInput): NotionVocabularyRecord 
   return {
     wordOrPhrase: candidate,
     chineseMeaning: "Add Chinese meaning during review",
-    englishMeaning: "Add a learner-friendly English definition",
     ieltsExample: `I will practise using "${candidate}" in one IELTS-style sentence.`,
     collocations: buildCollocations(candidate),
     pronunciationLink: `https://youglish.com/pronounce/${encoded}/english/uk`,
@@ -658,7 +655,6 @@ function buildNotionVocabularyRecord(input: ScoreInput): NotionVocabularyRecord 
       databaseName: "IELTS",
       wordProperty: "Word",
       meaningProperty: "中文",
-      englishProperty: "English",
       sentenceProperty: "Example",
       collocationProperty: "Collocation",
       pronunciationProperty: "YouGlish",
@@ -699,7 +695,7 @@ function buildCollocations(word: string) {
     alleviate: ["alleviate pain", "alleviate traffic congestion"],
   };
 
-  return known[lower] ?? [`use ${word} accurately`, `${word} in context`];
+  return known[lower] ?? [];
 }
 
 function buildSoundNote(word: string) {

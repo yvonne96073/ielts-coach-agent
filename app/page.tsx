@@ -337,17 +337,15 @@ export default function Home() {
                         <dd>{feedback.notionVocabularyRecord.chineseMeaning}</dd>
                       </div>
                       <div>
-                        <dt>English meaning</dt>
-                        <dd>{feedback.notionVocabularyRecord.englishMeaning}</dd>
-                      </div>
-                      <div>
                         <dt>IELTS example</dt>
                         <dd>{feedback.notionVocabularyRecord.ieltsExample}</dd>
                       </div>
-                      <div>
-                        <dt>Collocations</dt>
-                        <dd>{feedback.notionVocabularyRecord.collocations.join(", ")}</dd>
-                      </div>
+                      {feedback.notionVocabularyRecord.collocations.length ? (
+                        <div>
+                          <dt>Collocations</dt>
+                          <dd>{feedback.notionVocabularyRecord.collocations.join(", ")}</dd>
+                        </div>
+                      ) : null}
                       <div>
                         <dt>Sound note</dt>
                         <dd>{feedback.notionVocabularyRecord.soundNote}</dd>

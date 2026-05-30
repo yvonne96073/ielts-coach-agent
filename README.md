@@ -98,8 +98,13 @@ The detected existing Notion database schema is:
 
 ```text
 Name   -> word or phrase
-??  -> Chinese meaning, English meaning, and YouGlish link
-?亙?   -> IELTS-style example sentence
+銝剜?   -> Chinese meaning
+Example -> IELTS-style example sentence
+Collocation -> real collocations only, left blank when unknown
+YouGlish -> UK pronunciation link
+Sound Note -> stress, weak sound, or listening note
+Next Review -> spaced review date
+Error Type -> meaning, collocation, paraphrase, spelling, listening recognition, active use, pronunciation
 蝔桅?   -> existing multi-select tags such as ?潮銝? or ?潮
 ?賣?   -> error type or listening mistake note
 ```
@@ -117,7 +122,6 @@ When synced, each record can include:
 
 - word or phrase
 - Chinese meaning
-- English meaning
 - IELTS-style example sentence
 - collocations
 - YouGlish UK pronunciation link

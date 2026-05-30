@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 type SyncRequest = {
   wordOrPhrase?: string;
   chineseMeaning?: string;
-  englishMeaning?: string;
   ieltsExample?: string;
   collocations?: string[];
   pronunciationLink?: string;
@@ -65,15 +64,6 @@ export async function POST(request: Request) {
             },
           ],
         },
-        "English": {
-          rich_text: [
-            {
-              text: {
-                content: body.englishMeaning || "Add a learner-friendly English definition.",
-              },
-            },
-          ],
-        },
         "Example": {
           rich_text: [
             {
@@ -86,13 +76,15 @@ export async function POST(request: Request) {
           ],
         },
         "Collocation": {
-          rich_text: [
-            {
-              text: {
-                content: body.collocations?.join(" / ") || "Add one or two natural collocations.",
-              },
-            },
-          ],
+          rich_text: body.collocations?.length
+            ? [
+                {
+                  text: {
+                    content: body.collocations.join(" / "),
+                  },
+                },
+              ]
+            : [],
         },
         "YouGlish": {
           url: body.pronunciationLink || null,
