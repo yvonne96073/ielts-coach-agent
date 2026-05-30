@@ -22,6 +22,7 @@ export type NotionVocabularyRecord = {
   ieltsExample: string;
   collocations: string[];
   pronunciationLink: string;
+  soundNote: string;
   errorType: string;
   nextReviewDate: string;
   errorCount: number;
@@ -29,7 +30,12 @@ export type NotionVocabularyRecord = {
     databaseName: string;
     wordProperty: string;
     meaningProperty: string;
+    englishProperty: string;
     sentenceProperty: string;
+    collocationProperty: string;
+    pronunciationProperty: string;
+    soundNoteProperty: string;
+    nextReviewProperty: string;
     errorTypeProperty: string;
     listeningMistakeProperty: string;
   };
@@ -642,17 +648,23 @@ function buildNotionVocabularyRecord(input: ScoreInput): NotionVocabularyRecord 
     chineseMeaning: "Add Chinese meaning during review",
     englishMeaning: "Add a learner-friendly English definition",
     ieltsExample: `I will practise using "${candidate}" in one IELTS-style sentence.`,
-    collocations: [`${candidate} + context`, `common ${candidate}`],
+    collocations: buildCollocations(candidate),
     pronunciationLink: `https://youglish.com/pronounce/${encoded}/english/uk`,
-    errorType: "meaning, pronunciation, recall, or paraphrase",
+    soundNote: buildSoundNote(candidate),
+    errorType: inferVocabularyErrorType(input),
     nextReviewDate,
     errorCount: 1,
     existingDatabaseMapping: {
       databaseName: "IELTS",
-      wordProperty: "Name",
-      meaningProperty: "意思",
-      sentenceProperty: "句子",
-      errorTypeProperty: "種類",
+      wordProperty: "Word",
+      meaningProperty: "中文",
+      englishProperty: "English",
+      sentenceProperty: "Example",
+      collocationProperty: "Collocation",
+      pronunciationProperty: "YouGlish",
+      soundNoteProperty: "Sound Note",
+      nextReviewProperty: "Next Review",
+      errorTypeProperty: "Error Type",
       listeningMistakeProperty: "聽成",
     },
   };
@@ -677,4 +689,52 @@ function extractVocabularyCandidate(input: ScoreInput) {
         ),
     ) ?? "target phrase"
   );
+}
+
+function buildCollocations(word: string) {
+  const lower = word.toLowerCase();
+  const known: Record<string, string[]> = {
+    exacerbate: ["exacerbate a problem", "exacerbate inequality"],
+    mitigate: ["mitigate the impact", "mitigate climate change"],
+    alleviate: ["alleviate pain", "alleviate traffic congestion"],
+  };
+
+  return known[lower] ?? [`use ${word} accurately`, `${word} in context`];
+}
+
+function buildSoundNote(word: string) {
+  const lower = word.toLowerCase();
+  const known: Record<string, string> = {
+    exacerbate: "Stress is usually on the second syllable: ex-AC-er-bate.",
+    mitigate: "Stress is usually on the first syllable: MIT-i-gate.",
+    alleviate: "Stress is usually on the second syllable: al-LE-vi-ate.",
+  };
+
+  return known[lower] ?? "Listen for the main stress and one connected-speech example.";
+}
+
+function inferVocabularyErrorType(input: ScoreInput) {
+  const text = `${input.task} ${input.answer}`.toLowerCase();
+
+  if (/pronunciation|pronounce|sound|listen|heard|hearing/.test(text)) {
+    return "pronunciation";
+  }
+
+  if (/collocation|搭配/.test(text)) {
+    return "collocation";
+  }
+
+  if (/paraphrase|synonym|同義/.test(text)) {
+    return "paraphrase";
+  }
+
+  if (/spell|spelling|拼/.test(text)) {
+    return "spelling";
+  }
+
+  if (/active|use|造句/.test(text)) {
+    return "active use";
+  }
+
+  return "meaning";
 }

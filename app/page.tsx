@@ -349,6 +349,10 @@ export default function Home() {
                         <dd>{feedback.notionVocabularyRecord.collocations.join(", ")}</dd>
                       </div>
                       <div>
+                        <dt>Sound note</dt>
+                        <dd>{feedback.notionVocabularyRecord.soundNote}</dd>
+                      </div>
+                      <div>
                         <dt>YouGlish</dt>
                         <dd>
                           <a

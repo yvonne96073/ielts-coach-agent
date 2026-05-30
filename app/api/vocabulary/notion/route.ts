@@ -5,8 +5,11 @@ type SyncRequest = {
   chineseMeaning?: string;
   englishMeaning?: string;
   ieltsExample?: string;
+  collocations?: string[];
   pronunciationLink?: string;
+  soundNote?: string;
   errorType?: string;
+  nextReviewDate?: string;
 };
 
 const NOTION_VERSION = "2022-06-28";
@@ -32,14 +35,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing word or phrase." }, { status: 400 });
   }
 
-  const meaning = [
-    body.chineseMeaning,
-    body.englishMeaning,
-    body.pronunciationLink ? `YouGlish: ${body.pronunciationLink}` : undefined,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
   const response = await fetch("https://api.notion.com/v1/pages", {
     method: "POST",
     headers: {
@@ -52,7 +47,7 @@ export async function POST(request: Request) {
         database_id: databaseId,
       },
       properties: {
-        Name: {
+        "Word": {
           title: [
             {
               text: {
@@ -61,16 +56,25 @@ export async function POST(request: Request) {
             },
           ],
         },
-        "意思": {
+        "中文": {
           rich_text: [
             {
               text: {
-                content: meaning || "Review meaning and usage.",
+                content: body.chineseMeaning || "Review Chinese meaning.",
               },
             },
           ],
         },
-        "句子": {
+        "English": {
+          rich_text: [
+            {
+              text: {
+                content: body.englishMeaning || "Add a learner-friendly English definition.",
+              },
+            },
+          ],
+        },
+        "Example": {
           rich_text: [
             {
               text: {
@@ -81,7 +85,33 @@ export async function POST(request: Request) {
             },
           ],
         },
-        "種類": {
+        "Collocation": {
+          rich_text: [
+            {
+              text: {
+                content: body.collocations?.join(" / ") || "Add one or two natural collocations.",
+              },
+            },
+          ],
+        },
+        "YouGlish": {
+          url: body.pronunciationLink || null,
+        },
+        "Sound Note": {
+          rich_text: [
+            {
+              text: {
+                content: body.soundNote || "Listen for stress, weak sounds, and connected speech.",
+              },
+            },
+          ],
+        },
+        "Next Review": {
+          date: {
+            start: body.nextReviewDate || tomorrowDate(),
+          },
+        },
+        "Error Type": {
           multi_select: inferExistingErrorTags(body.errorType),
         },
         "聽成": {
@@ -129,14 +159,25 @@ export async function POST(request: Request) {
 
 function inferExistingErrorTags(errorType = "") {
   const lower = errorType.toLowerCase();
+  const allowed = [
+    "meaning",
+    "collocation",
+    "paraphrase",
+    "spelling",
+    "listening recognition",
+    "active use",
+    "pronunciation",
+  ];
 
-  if (lower.includes("pronunciation") || lower.includes("listening")) {
-    return [{ name: "發音不熟" }];
-  }
-
-  if (lower.includes("spelling")) {
-    return [{ name: "拼錯" }];
+  for (const option of allowed) {
+    if (lower.includes(option)) {
+      return [{ name: option }];
+    }
   }
 
   return [];
+}
+
+function tomorrowDate() {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
