@@ -1,4 +1,4 @@
-# IELTS Coach Agent
+﻿# IELTS Coach Agent
 
 An adaptive IELTS coaching agent that observes learner answers, infers error patterns, generates targeted drills, and helps learners move from roughly Band 6 toward Band 7.5.
 
@@ -92,7 +92,28 @@ Next drill: 5 intention-vs-result TFNG questions.
 
 ## Notion Vocabulary Workflow
 
-When the learner misses a vocabulary item, the agent prepares a record with:
+When the learner misses a vocabulary item, the agent prepares a record and can sync it to the existing Notion `IELTS` vocabulary database after environment variables are configured.
+
+The detected existing Notion database schema is:
+
+```text
+Name   -> word or phrase
+??  -> Chinese meaning, English meaning, and YouGlish link
+?亙?   -> IELTS-style example sentence
+蝔桅?   -> existing multi-select tags such as ?潮銝? or ?潮
+?賣?   -> error type or listening mistake note
+```
+
+Create `.env.local` from `.env.example`:
+
+```bash
+NOTION_TOKEN=your_notion_integration_token
+NOTION_VOCAB_DATABASE_ID=your_notion_database_id
+```
+
+Then share the `IELTS` database with the Notion integration in Notion.
+
+When synced, each record can include:
 
 - word or phrase
 - Chinese meaning

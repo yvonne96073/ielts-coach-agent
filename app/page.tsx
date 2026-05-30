@@ -70,7 +70,9 @@ export default function Home() {
     return stored ? (JSON.parse(stored) as PracticeAttempt[]) : [];
   });
   const [error, setError] = useState("");
+  const [notionStatus, setNotionStatus] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSavingToNotion, setIsSavingToNotion] = useState(false);
 
   const wordCount = useMemo(() => {
     return answer.trim().match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)?.length ?? 0;
@@ -81,6 +83,7 @@ export default function Home() {
     setTask(sampleTasks[nextMode]);
     setFeedback(null);
     setError("");
+    setNotionStatus("");
   }
 
   async function submitForFeedback(event: FormEvent<HTMLFormElement>) {
@@ -104,6 +107,7 @@ export default function Home() {
       }
 
       setFeedback(data);
+      setNotionStatus("");
       saveAttempt(data);
     } catch (caughtError) {
       setError(
@@ -113,6 +117,38 @@ export default function Home() {
       );
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function saveVocabularyToNotion() {
+    if (!feedback?.notionVocabularyRecord) {
+      return;
+    }
+
+    setIsSavingToNotion(true);
+    setNotionStatus("");
+
+    try {
+      const response = await fetch("/api/vocabulary/notion", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(feedback.notionVocabularyRecord),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "Could not save to Notion.");
+      }
+
+      setNotionStatus(`Saved to Notion: ${data.url}`);
+    } catch (caughtError) {
+      setNotionStatus(
+        caughtError instanceof Error ? caughtError.message : "Could not save to Notion.",
+      );
+    } finally {
+      setIsSavingToNotion(false);
     }
   }
 
@@ -332,7 +368,20 @@ export default function Home() {
                         <dt>Error count</dt>
                         <dd>{feedback.notionVocabularyRecord.errorCount}</dd>
                       </div>
+                      <div>
+                        <dt>Target database</dt>
+                        <dd>{feedback.notionVocabularyRecord.existingDatabaseMapping.databaseName}</dd>
+                      </div>
                     </dl>
+                    <button
+                      className="secondary-button"
+                      disabled={isSavingToNotion}
+                      onClick={saveVocabularyToNotion}
+                      type="button"
+                    >
+                      {isSavingToNotion ? "Saving..." : "Save to Notion"}
+                    </button>
+                    {notionStatus ? <p className="sync-status">{notionStatus}</p> : null}
                   </section>
                 ) : null}
 

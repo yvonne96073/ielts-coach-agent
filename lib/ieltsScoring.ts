@@ -25,6 +25,14 @@ export type NotionVocabularyRecord = {
   errorType: string;
   nextReviewDate: string;
   errorCount: number;
+  existingDatabaseMapping: {
+    databaseName: string;
+    wordProperty: string;
+    meaningProperty: string;
+    sentenceProperty: string;
+    errorTypeProperty: string;
+    listeningMistakeProperty: string;
+  };
 };
 
 export type CoachFeedback = {
@@ -639,6 +647,14 @@ function buildNotionVocabularyRecord(input: ScoreInput): NotionVocabularyRecord 
     errorType: "meaning, pronunciation, recall, or paraphrase",
     nextReviewDate,
     errorCount: 1,
+    existingDatabaseMapping: {
+      databaseName: "IELTS",
+      wordProperty: "Name",
+      meaningProperty: "意思",
+      sentenceProperty: "句子",
+      errorTypeProperty: "種類",
+      listeningMistakeProperty: "聽成",
+    },
   };
 }
 
