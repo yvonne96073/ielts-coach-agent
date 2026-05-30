@@ -1,0 +1,32 @@
+{
+  "reading": [
+    {
+      "pattern": "over-inference",
+      "observed_answer": "chooses True because the statement sounds logical",
+      "better_method": "require direct textual evidence",
+      "next_drill": "TFNG evidence-only drill"
+    },
+    {
+      "pattern": "keyword matching",
+      "observed_answer": "chooses heading based on one repeated word",
+      "better_method": "identify paragraph function",
+      "next_drill": "paragraph function labelling"
+    }
+  ],
+  "listening": [
+    {
+      "pattern": "lost map sequence",
+      "observed_answer": "several map answers wrong after one miss",
+      "better_method": "re-anchor at the next landmark",
+      "next_drill": "map recovery drill"
+    }
+  ],
+  "speaking": [
+    {
+      "pattern": "tense drift",
+      "observed_answer": "mixes past and present in a past-event answer",
+      "better_method": "label time frame before answering",
+      "next_drill": "time-frame labelling"
+    }
+  ]
+}
