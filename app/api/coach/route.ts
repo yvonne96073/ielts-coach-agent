@@ -9,7 +9,14 @@ type CoachRequest = {
 
 export async function POST(request: Request) {
   const body = (await request.json()) as CoachRequest;
-  const mode = body.mode === "speaking" ? "speaking" : "writing";
+  const allowedModes: PracticeMode[] = [
+    "writing",
+    "speaking",
+    "reading",
+    "listening",
+    "vocabulary",
+  ];
+  const mode = body.mode && allowedModes.includes(body.mode) ? body.mode : "writing";
   const task = body.task?.trim() ?? "";
   const answer = body.answer?.trim() ?? "";
 

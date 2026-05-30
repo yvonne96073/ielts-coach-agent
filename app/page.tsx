@@ -3,11 +3,49 @@
 import { FormEvent, useMemo, useState } from "react";
 import type { CoachFeedback, PracticeMode } from "@/lib/ieltsScoring";
 
+const moduleOptions: Array<{
+  mode: PracticeMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    mode: "writing",
+    label: "Writing",
+    description: "Task 1 and Task 2 feedback",
+  },
+  {
+    mode: "speaking",
+    label: "Speaking",
+    description: "Fluency and answer extension",
+  },
+  {
+    mode: "reading",
+    label: "Reading",
+    description: "Evidence and TFNG reasoning",
+  },
+  {
+    mode: "listening",
+    label: "Listening",
+    description: "Prediction and distractor review",
+  },
+  {
+    mode: "vocabulary",
+    label: "Vocabulary",
+    description: "Recall, collocation, pronunciation",
+  },
+];
+
 const sampleTasks: Record<PracticeMode, string> = {
   writing:
     "Some people believe that technology makes students less independent. To what extent do you agree or disagree?",
   speaking:
     "Describe a skill you would like to learn in the future. You should say what it is, why you want to learn it, how you would learn it, and how it would help you.",
+  reading:
+    "Paste a Reading question, the relevant passage sentence, your answer, and explain why you chose it. Example: TFNG, headings, matching information, or multiple choice.",
+  listening:
+    "Paste a Listening question, your prediction before listening, the transcript clue, your answer, and the correct answer if known.",
+  vocabulary:
+    "Paste a word or phrase you missed, its sentence, your guessed meaning, and the correct meaning or context.",
 };
 
 export default function Home() {
@@ -91,22 +129,17 @@ export default function Home() {
           </div>
 
           <div className="mode-grid" aria-label="Practice mode">
-            <button
-              className={`mode-option ${mode === "writing" ? "active" : ""}`}
-              type="button"
-              onClick={() => changeMode("writing")}
-            >
-              <strong>Writing</strong>
-              <span>Task 2 essay feedback</span>
-            </button>
-            <button
-              className={`mode-option ${mode === "speaking" ? "active" : ""}`}
-              type="button"
-              onClick={() => changeMode("speaking")}
-            >
-              <strong>Speaking</strong>
-              <span>Part 2 style answer feedback</span>
-            </button>
+            {moduleOptions.map((option) => (
+              <button
+                className={`mode-option ${mode === option.mode ? "active" : ""}`}
+                key={option.mode}
+                type="button"
+                onClick={() => changeMode(option.mode)}
+              >
+                <strong>{option.label}</strong>
+                <span>{option.description}</span>
+              </button>
+            ))}
           </div>
 
           <label className="field-group">
@@ -187,8 +220,8 @@ export default function Home() {
               <div className="empty-icon">B</div>
               <h2>No feedback yet</h2>
               <p className="muted">
-                Submit a response to see an estimated band, criterion scores, and revision
-                priorities.
+                Submit a response to see an estimated level, criterion feedback, and revision
+                priorities for the selected module.
               </p>
             </div>
           )}

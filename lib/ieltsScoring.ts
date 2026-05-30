@@ -1,4 +1,4 @@
-export type PracticeMode = "writing" | "speaking";
+export type PracticeMode = "writing" | "speaking" | "reading" | "listening" | "vocabulary";
 
 export type CriterionFeedback = {
   name: string;
@@ -75,7 +75,7 @@ export function scoreIeltsResponse(input: ScoreInput): CoachFeedback {
 
   const criteria: CriterionFeedback[] = [
     {
-      name: input.mode === "writing" ? "Task Response" : "Fluency and Relevance",
+      name: primaryCriterionName(input.mode),
       score: taskScore,
       summary: summarizeTask(taskScore, input.mode),
       suggestions: buildTaskSuggestions(input.mode, words.length, input.task, input.answer),
@@ -131,7 +131,27 @@ function countMatches(text: string, terms: string[]) {
 }
 
 function targetWordCount(mode: PracticeMode) {
-  return mode === "writing" ? 250 : 160;
+  if (mode === "writing") {
+    return 250;
+  }
+
+  if (mode === "speaking") {
+    return 160;
+  }
+
+  return 120;
+}
+
+function primaryCriterionName(mode: PracticeMode) {
+  const names: Record<PracticeMode, string> = {
+    writing: "Task Response",
+    speaking: "Fluency and Relevance",
+    reading: "Evidence and Question Focus",
+    listening: "Prediction and Detail Tracking",
+    vocabulary: "Meaning, Use, and Recall",
+  };
+
+  return names[mode];
 }
 
 function mentionsTaskTerms(task: string, answer: string) {
@@ -161,9 +181,15 @@ function roundToHalf(score: number) {
 
 function summarizeTask(score: number, mode: PracticeMode) {
   if (score >= 7) {
-    return mode === "writing"
-      ? "The response addresses the prompt with enough development for a strong first draft."
-      : "The answer stays relevant and gives enough detail to sound purposeful.";
+    if (mode === "writing") {
+      return "The response addresses the prompt with enough development for a strong first draft.";
+    }
+
+    if (mode === "speaking") {
+      return "The answer stays relevant and gives enough detail to sound purposeful.";
+    }
+
+    return "The response shows clear attention to the task and uses enough detail to diagnose the next step.";
   }
 
   if (score >= 6) {
@@ -216,9 +242,7 @@ function buildTaskSuggestions(
   answer: string,
 ) {
   const suggestions = [
-    mode === "writing"
-      ? "State your position in the introduction and return to it in the conclusion."
-      : "Answer directly first, then extend with a reason, example, or short contrast.",
+    primarySuggestion(mode),
   ];
 
   if (wordCount < targetWordCount(mode)) {
@@ -236,6 +260,18 @@ function buildTaskSuggestions(
   }
 
   return suggestions;
+}
+
+function primarySuggestion(mode: PracticeMode) {
+  const suggestions: Record<PracticeMode, string> = {
+    writing: "State your position in the introduction and return to it in the conclusion.",
+    speaking: "Answer directly first, then extend with a reason, example, or short contrast.",
+    reading: "Quote or paraphrase the exact evidence before choosing the answer.",
+    listening: "Write the predicted answer type before checking the transcript or notes.",
+    vocabulary: "Record the word with meaning, collocation, pronunciation cue, and one IELTS sentence.",
+  };
+
+  return suggestions[mode];
 }
 
 function buildCoherenceSuggestions(connectorCount: number, averageSentenceLength: number) {
@@ -286,7 +322,7 @@ function buildGrammarSuggestions(sentenceCount: number, averageSentenceLength: n
 }
 
 function buildOverview(estimatedBand: number, mode: PracticeMode) {
-  const taskName = mode === "writing" ? "writing draft" : "speaking answer";
+  const taskName = modeLabel(mode);
 
   if (estimatedBand >= 7) {
     return `This ${taskName} is already organized and relevant. The next gain is precision: sharper examples, cleaner grammar, and more natural topic vocabulary.`;
@@ -297,6 +333,18 @@ function buildOverview(estimatedBand: number, mode: PracticeMode) {
   }
 
   return `This ${taskName} communicates a basic message, but it needs clearer structure, fuller support, and more accurate sentence control.`;
+}
+
+function modeLabel(mode: PracticeMode) {
+  const labels: Record<PracticeMode, string> = {
+    writing: "writing draft",
+    speaking: "speaking answer",
+    reading: "reading explanation",
+    listening: "listening review",
+    vocabulary: "vocabulary note",
+  };
+
+  return labels[mode];
 }
 
 function buildStrengths(criteria: CriterionFeedback[]) {
